@@ -1,0 +1,116 @@
+# valueIterationAgents.py
+# -----------------------
+# Licensing Information:  You are free to use or extend these projects for
+# educational purposes provided that (1) you do not distribute or publish
+# solutions, (2) you retain this notice, and (3) you provide clear
+# attribution to UC Berkeley, including a link to http://ai.berkeley.edu.
+# 
+# Attribution Information: The Pacman AI projects were developed at UC Berkeley.
+# The core projects and autograders were primarily created by John DeNero
+# (denero@cs.berkeley.edu) and Dan Klein (klein@cs.berkeley.edu).
+# Student side autograding was added by Brad Miller, Nick Hay, and
+# Pieter Abbeel (pabbeel@cs.berkeley.edu).
+
+
+import mdp, util
+
+from learningAgents import ValueEstimationAgent
+from mdp import MarkovDecisionProcess
+
+class ValueIterationAgent(ValueEstimationAgent):
+    """
+        * Please read learningAgents.py before reading this.*
+
+        A ValueIterationAgent takes a Markov decision process
+        (see mdp.py) on initialization and runs value iteration
+        for a given number of iterations using the supplied
+        discount factor.
+    """
+    def __init__(self, mdp, discount = 0.9, iterations = 100):
+        """
+          Your value iteration agent should take an mdp on
+          construction, run the indicated number of iterations
+          and then act according to the resulting policy.
+
+          Some useful mdp methods you will use:
+              mdp.getStates()
+              mdp.getPossibleActions(state)
+              mdp.getTransitionStatesAndProbs(state, action)
+              mdp.getReward(state, action, nextState)
+              mdp.isTerminal(state)
+        """
+        self.mdp = mdp
+        self.discount = discount
+        self.iterations = iterations
+        max_value=0
+        self.values = util.Counter() # A Counter is a dict with default 0
+        states=mdp.getStates()
+        state_value={}
+        #for state in states:
+           # state_value[state]=0.0
+        #self.values=state_value
+        for i in range(iterations):
+            value_count=util.Counter()
+            max_value=0
+            for state in states:
+                if not mdp.isTerminal(state):
+                    Q_value=[]
+                    actions=mdp.getPossibleActions(state)
+                    for action in actions:
+                        Q_value.append(self.getQValue(state, action))
+                    if Q_value:
+                        max_value=max(Q_value)
+                state_value[state]=max_value
+            self.values=state_value.copy()
+
+
+    def getValue(self, state):
+        """
+          Return the value of the state (computed in __init__).
+        """
+        return self.values[state]
+
+
+    def computeQValueFromValues(self, state, action):
+        """
+          Compute the Q-value of action in state from the
+          value function stored in self.values.
+        """
+        Q_value=0
+        transition=self.mdp.getTransitionStatesAndProbs(state, action)
+        for i in range(len(transition)):
+            reward=self.mdp.getReward(state,action,transition[i][0])
+            Q_value=Q_value+(transition[i][1]*(reward + (self.discount*self.values[transition[i][0]])))
+        return Q_value
+
+    def computeActionFromValues(self, state):
+        """
+          The policy is the best action in the given state
+          according to the values currently stored in self.values.
+
+          You may break ties any way you see fit.  Note that if
+          there are no legal actions, which is the case at the
+          terminal state, you should return None.
+        """
+        if self.mdp.isTerminal(state):
+            return None
+        
+        actions = self.mdp.getPossibleActions(state)
+        if len(actions) == 0:
+            return None
+        Q_value={}
+        for action in actions:
+            q = self.computeQValueFromValues(state, action)
+            Q_value[action]=q
+        
+        return max(Q_value,key=Q_value.get)
+
+    def getPolicy(self, state):
+        return self.computeActionFromValues(state)
+
+    def getAction(self, state):
+        "Returns the policy at the state (no exploration)."
+        return self.computeActionFromValues(state)
+
+    def getQValue(self, state, action):
+        return self.computeQValueFromValues(state, action)
